@@ -3,15 +3,15 @@ import { ref, reactive, onUnmounted } from 'vue'
 import { useSocket } from '../composables/useSocket'
 import MessageLog from './MessageLog.vue'
 
-const { send, onMessage } = useSocket()
+const { send, onMessage, isVercel } = useSocket()
 
-const port = ref(9000)
+const port = ref(8080)
 const running = ref(false)
 const inputMsg = ref('')
 const selectedClient = ref('*')
 const clients = reactive([])
 const messages = reactive([])
-const serverId = 'tcp-server-' + Date.now()
+const serverId = 'ws-server-' + Date.now()
 
 function addLog(direction, content, type = 'msg') {
   messages.push({ direction, content, type: type === 'msg' ? '' : type, timestamp: Date.now() })
@@ -19,23 +19,23 @@ function addLog(direction, content, type = 'msg') {
 
 const unsub = onMessage(serverId, (msg) => {
   switch (msg.type) {
-    case 'tcp-server:started':
+    case 'ws-server:started':
       running.value = true
-      addLog('recv', `TCP Server started on port ${msg.port}`, 'system')
+      addLog('recv', `Server started on port ${msg.port}`, 'system')
       break
-    case 'tcp-server:connection':
+    case 'ws-server:connection':
       clients.push(msg.clientId)
       addLog('recv', `Client connected: ${msg.clientId}`, 'system')
       break
-    case 'tcp-server:data':
+    case 'ws-server:message':
       addLog('recv', `[${msg.clientId}] ${msg.data}`)
       break
-    case 'tcp-server:disconnection':
+    case 'ws-server:disconnection':
       const idx = clients.indexOf(msg.clientId)
       if (idx >= 0) clients.splice(idx, 1)
       addLog('recv', `Client disconnected: ${msg.clientId}`, 'system')
       break
-    case 'tcp-server:error':
+    case 'ws-server:error':
       addLog('recv', `Error: ${msg.error}`, 'error')
       break
   }
@@ -44,11 +44,11 @@ const unsub = onMessage(serverId, (msg) => {
 onUnmounted(() => { unsub() })
 
 function startServer() {
-  send('tcp-server:start', { serverId, port: Number(port.value) })
+  send('ws-server:start', { serverId, port: Number(port.value) })
 }
 
 function stopServer() {
-  send('tcp-server:stop', { serverId })
+  send('ws-server:stop', { serverId })
   running.value = false
   clients.splice(0, clients.length)
   addLog('sent', 'Server stopped', 'system')
@@ -57,10 +57,10 @@ function stopServer() {
 function sendMessage() {
   if (!inputMsg.value.trim()) return
   if (selectedClient.value === '*') {
-    send('tcp-server:broadcast', { serverId, data: inputMsg.value })
+    send('ws-server:broadcast', { serverId, data: inputMsg.value })
     addLog('sent', `[Broadcast] ${inputMsg.value}`)
   } else {
-    send('tcp-server:send', { serverId, clientId: selectedClient.value, data: inputMsg.value })
+    send('ws-server:send', { serverId, clientId: selectedClient.value, data: inputMsg.value })
     addLog('sent', `[${selectedClient.value}] ${inputMsg.value}`)
   }
   inputMsg.value = ''
@@ -73,18 +73,31 @@ function clearLog() {
 
 <template>
   <div class="h-full flex flex-col">
+    <!-- Vercel mode notice -->
+    <div v-if="isVercel" class="flex-1 flex items-center justify-center p-8">
+      <div class="text-center max-w-md space-y-3">
+        <div class="text-4xl">🚫</div>
+        <h3 class="text-lg font-semibold text-surface-700 dark:text-surface-200">WS Server Unavailable</h3>
+        <p class="text-sm text-surface-500 dark:text-surface-400 leading-relaxed">
+          WebSocket Server requires a backend runtime to listen on ports. This feature is only available in local deployment mode.
+        </p>
+        <p class="text-xs text-surface-400 dark:text-surface-500">Set <code class="px-1.5 py-0.5 rounded bg-surface-100 dark:bg-surface-800 font-mono">VITE_DEPLOY=local</code> and run the backend server.</p>
+      </div>
+    </div>
+
+    <template v-else>
     <!-- Header -->
     <div class="flex-shrink-0 px-5 py-4 border-b border-surface-200/70 dark:border-surface-800 bg-white/40 dark:bg-surface-900/40">
       <div class="flex gap-2 items-center">
-        <div class="flex items-center px-3 h-10 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-300 text-sm font-bold">
-          TCP Server
+        <div class="flex items-center px-3 h-10 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 text-sm font-bold">
+          WS Server
         </div>
         <input
           v-model="port"
           type="number"
           placeholder="Port"
           :disabled="running"
-          class="w-28 input-base font-mono"
+          class="w-28 input-base"
         />
         <button v-if="!running" @click="startServer" class="btn-success">Start</button>
         <button v-else @click="stopServer" class="btn-danger">Stop</button>
@@ -120,14 +133,18 @@ function clearLog() {
       <div class="flex-1 flex flex-col min-w-0">
         <div class="flex-shrink-0 px-5 py-4 border-b border-surface-200/70 dark:border-surface-800">
           <div class="flex gap-2">
-            <select v-model="selectedClient" :disabled="!running" class="input-base">
+            <select
+              v-model="selectedClient"
+              :disabled="!running"
+              class="input-base"
+            >
               <option value="*">Broadcast</option>
               <option v-for="c in clients" :key="c" :value="c">{{ c }}</option>
             </select>
             <input
               v-model="inputMsg"
               type="text"
-              placeholder="Type data to send..."
+              placeholder="Type a message..."
               :disabled="!running"
               class="flex-1 input-base"
               @keydown.enter="sendMessage"
@@ -139,7 +156,7 @@ function clearLog() {
         <div class="flex-1 min-h-0 p-5">
           <div class="h-full flex flex-col card overflow-hidden">
             <div class="flex-shrink-0 flex items-center justify-between px-4 py-2.5 border-b border-surface-200/70 dark:border-surface-800 bg-surface-50/60 dark:bg-surface-900/60">
-              <span class="text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wider">Data Log ({{ messages.length }})</span>
+              <span class="text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wider">Messages ({{ messages.length }})</span>
               <button @click="clearLog" class="text-xs font-medium text-surface-400 dark:text-surface-500 hover:text-rose-500 transition-colors">Clear</button>
             </div>
             <div class="flex-1 min-h-0">
@@ -149,5 +166,6 @@ function clearLog() {
         </div>
       </div>
     </div>
+    </template>
   </div>
 </template>

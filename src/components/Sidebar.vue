@@ -5,7 +5,7 @@ import { useSocket } from '../composables/useSocket'
 const props = defineProps({ currentView: String })
 const emit = defineEmits(['navigate'])
 const { isDark, toggle } = useTheme()
-const { connected } = useSocket()
+const { connected, isVercel } = useSocket()
 
 const navItems = [
   { id: 'http', label: 'HTTP', icon: '⚡' },
@@ -53,19 +53,25 @@ const navItems = [
     <div class="p-3 border-t border-surface-200/70 dark:border-surface-800 space-y-1">
       <!-- Connection status -->
       <div class="flex items-center gap-2 text-xs px-3 py-1.5">
-        <span class="relative flex w-2 h-2">
-          <span
-            v-if="connected"
-            class="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping"
-          ></span>
-          <span
-            class="relative inline-flex w-2 h-2 rounded-full"
-            :class="connected ? 'bg-emerald-500' : 'bg-rose-500'"
-          ></span>
-        </span>
-        <span class="text-surface-500 dark:text-surface-400">
-          {{ connected ? 'Server connected' : 'Server disconnected' }}
-        </span>
+        <template v-if="isVercel">
+          <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-violet-500/10 text-violet-600 dark:text-violet-300">Vercel</span>
+          <span class="text-surface-500 dark:text-surface-400">Cloud Mode</span>
+        </template>
+        <template v-else>
+          <span class="relative flex w-2 h-2">
+            <span
+              v-if="connected"
+              class="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping"
+            ></span>
+            <span
+              class="relative inline-flex w-2 h-2 rounded-full"
+              :class="connected ? 'bg-emerald-500' : 'bg-rose-500'"
+            ></span>
+          </span>
+          <span class="text-surface-500 dark:text-surface-400">
+            {{ connected ? 'Server connected' : 'Server disconnected' }}
+          </span>
+        </template>
       </div>
       <!-- Theme toggle -->
       <button

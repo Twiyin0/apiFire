@@ -1,11 +1,17 @@
 import { ref, shallowRef } from 'vue'
 
+const deployMode = import.meta.env.VITE_DEPLOY || 'local'
+const isVercel = deployMode === 'vercel'
+
 let ws = null
 const handlers = new Map()
 const connected = ref(false)
 const reconnectTimer = shallowRef(null)
 
 function connect() {
+  // In vercel mode, no backend relay server — skip WS connection
+  if (isVercel) return
+
   if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) return
 
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -17,7 +23,6 @@ function connect() {
 
   ws.onclose = () => {
     connected.value = false
-    // Reconnect after 2s
     clearTimeout(reconnectTimer.value)
     reconnectTimer.value = setTimeout(connect, 2000)
   }
@@ -29,7 +34,6 @@ function connect() {
   ws.onmessage = (event) => {
     try {
       const msg = JSON.parse(event.data)
-      // Dispatch to registered handlers
       handlers.forEach((fn) => fn(msg))
     } catch {}
   }
@@ -47,8 +51,7 @@ function onMessage(id, handler) {
 }
 
 export function useSocket() {
-  // Auto-connect on first use
-  if (!ws) connect()
+  if (!isVercel && !ws) connect()
 
-  return { connected, send, onMessage, reconnect: connect }
+  return { connected, send, onMessage, reconnect: connect, isVercel }
 }
