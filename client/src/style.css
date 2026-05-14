@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+  /* Inputs/selects: subtle dark surfaces, no harsh white-on-black */
+  input, select, textarea {
+    @apply transition-colors duration-150;
+  }
+  /* Selection color */
+  ::selection {
+    @apply bg-blue-500/30 text-inherit;
+  }
+}
+
+@layer components {
+  /* Reusable surface card */
+  .card {
+    @apply bg-white dark:bg-surface-850 border border-surface-200 dark:border-surface-700/60 rounded-xl shadow-soft;
+  }
+  .panel {
+    @apply bg-white/60 dark:bg-surface-850/60 border border-surface-200/70 dark:border-surface-700/50 rounded-lg backdrop-blur-sm;
+  }
+  /* Standard input */
+  .input-base {
+    @apply h-10 px-3.5 rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800/60 text-sm text-surface-900 dark:text-surface-100 placeholder-surface-300 dark:placeholder-surface-600 focus:outline-none focus:border-blue-400 dark:focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/15 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  /* Buttons */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-1.5 h-10 px-5 rounded-lg text-sm font-semibold text-white bg-gradient-to-b from-blue-500 to-blue-600 hover:from-blue-500 hover:to-blue-700 active:from-blue-600 active:to-blue-700 shadow-soft hover:shadow-soft-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150;
+  }
+  .btn-success {
+    @apply inline-flex items-center justify-center gap-1.5 h-10 px-5 rounded-lg text-sm font-semibold text-white bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-500 hover:to-emerald-700 shadow-soft disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-1.5 h-10 px-5 rounded-lg text-sm font-semibold text-white bg-gradient-to-b from-rose-500 to-rose-600 hover:from-rose-500 hover:to-rose-700 shadow-soft disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg text-sm font-medium text-surface-700 dark:text-surface-300 bg-surface-100/60 dark:bg-surface-800/60 hover:bg-surface-200/60 dark:hover:bg-surface-700/60 transition-colors;
+  }
+  /* Tab pill */
+  .tab-pill {
+    @apply px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all duration-150;
+  }
+  /* Status dot */
+  .dot {
+    @apply inline-block w-2 h-2 rounded-full;
+  }
+}
+
+/* Custom scrollbar — calmer in both modes */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-surface-300/70 dark:bg-surface-700/70 rounded-full;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-surface-300 dark:bg-surface-600;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(203 213 225 / 0.5) transparent;
+}
+.dark * {
+  scrollbar-color: rgb(51 65 85 / 0.6) transparent;
+}
+
+/* JSON syntax highlight — desaturated, easier on the eyes in dark mode */
+.json-key { @apply text-violet-600 dark:text-violet-300; }
+.json-string { @apply text-emerald-600 dark:text-emerald-300; }
+.json-number { @apply text-amber-600 dark:text-amber-300; }
+.json-boolean { @apply text-rose-600 dark:text-rose-300; }
+.json-null { @apply text-surface-300 dark:text-surface-600 italic; }
